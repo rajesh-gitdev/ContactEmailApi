@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\ContactEmailApi.Application\ContactEmailApi.Application.csproj" />
+    <ProjectReference Include="..\..\src\ContactEmailApi.Domain\ContactEmailApi.Domain.csproj" />
+    <ProjectReference Include="..\..\src\ContactEmailApi.Infrastructure\ContactEmailApi.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\ContactEmailApi.Shared\ContactEmailApi.Shared.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+    <PackageReference Include="coverlet.collector" />
+  </ItemGroup>
+</Project>

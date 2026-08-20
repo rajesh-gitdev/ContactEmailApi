@@ -1,0 +1,4 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Domain is the innermost layer. It depends on NOTHING (no other project,
+       no framework packages) so business rules stay pure and testable. -->
+</Project>

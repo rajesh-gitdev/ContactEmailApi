@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\ContactEmailApi.Application\ContactEmailApi.Application.csproj" />
+    <ProjectReference Include="..\ContactEmailApi.Domain\ContactEmailApi.Domain.csproj" />
+    <ProjectReference Include="..\ContactEmailApi.Persistence\ContactEmailApi.Persistence.csproj" />
+    <ProjectReference Include="..\ContactEmailApi.Shared\ContactEmailApi.Shared.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Grants access to ASP.NET Core types (auth handlers, health checks,
+         IHttpContextAccessor, rate limiting) from a class library. -->
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" />
+    <PackageReference Include="Microsoft.IdentityModel.JsonWebTokens" />
+    <PackageReference Include="System.IdentityModel.Tokens.Jwt" />
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
+    <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" />
+    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" />
+    <PackageReference Include="MailKit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- HTML email templates are compiled in as embedded resources and read at runtime
+         by EmailTemplateRenderer. _layout.html is documentation only, so it is excluded.
+         Remove from the default None glob first to avoid duplicate-item errors. -->
+    <None Remove="Email\Templates\*.html" />
+    <EmbeddedResource Include="Email\Templates\*.html" Exclude="Email\Templates\_layout.html" />
+  </ItemGroup>
+</Project>

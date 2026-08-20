@@ -1,0 +1,14 @@
+bin/
+obj/
+out/
+*.user
+.vs/
+.vscode/
+*.log
+logs/
+appsettings.*.local.json
+.env
+*.received.*
+TestResults/
+coverage*/
+publish/

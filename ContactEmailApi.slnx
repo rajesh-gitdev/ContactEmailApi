@@ -1,0 +1,14 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/ContactEmailApi.Domain/ContactEmailApi.Domain.csproj" />
+    <Project Path="src/ContactEmailApi.Shared/ContactEmailApi.Shared.csproj" />
+    <Project Path="src/ContactEmailApi.Application/ContactEmailApi.Application.csproj" />
+    <Project Path="src/ContactEmailApi.Persistence/ContactEmailApi.Persistence.csproj" />
+    <Project Path="src/ContactEmailApi.Infrastructure/ContactEmailApi.Infrastructure.csproj" />
+    <Project Path="src/ContactEmailApi.Api/ContactEmailApi.Api.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/ContactEmailApi.UnitTests/ContactEmailApi.UnitTests.csproj" />
+    <Project Path="tests/ContactEmailApi.IntegrationTests/ContactEmailApi.IntegrationTests.csproj" />
+  </Folder>
+</Solution>

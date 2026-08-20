@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\ContactEmailApi.Domain\ContactEmailApi.Domain.csproj" />
+    <ProjectReference Include="..\ContactEmailApi.Shared\ContactEmailApi.Shared.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Abstractions only. No concrete framework or infrastructure dependencies. -->
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+    <PackageReference Include="FluentValidation" />
+    <PackageReference Include="FluentValidation.DependencyInjectionExtensions" />
+  </ItemGroup>
+</Project>

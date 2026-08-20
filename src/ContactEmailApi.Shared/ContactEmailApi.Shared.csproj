@@ -1,0 +1,4 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Shared cross-cutting primitives (response envelope, constants, exceptions).
+       Kept dependency-free so any layer may reference it safely. -->
+</Project>
