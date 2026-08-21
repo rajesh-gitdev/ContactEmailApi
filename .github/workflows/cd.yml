@@ -9,67 +9,84 @@ on:
 jobs:
   deploy:
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
-
     runs-on: [self-hosted, Windows, X64]
 
     steps:
 
-      # 1. Download artifact produced by CI
       - name: Download artifact
         uses: actions/download-artifact@v4
         with:
           name: ContactEmailApi
-          path: C:\Deploy\ContactEmail.API
+          path: C:\Deploy\ContactEmailApi-Temp
           run-id: ${{ github.event.workflow_run.id }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
-      # 2. Verify artifact
-      - name: Verify artifact
-        shell: powershell
-        run: |
-          Write-Host "Checking deployment folder..."
-
-          if (-not (Test-Path "C:\Deploy\ContactEmail.API")) {
-              Write-Error "Deployment folder does not exist."
-              exit 1
-          }
-
-          Get-ChildItem "C:\Deploy\ContactEmail.API"
-
-      # 3. Stop IIS Application Pool
       - name: Stop IIS Application Pool
         shell: powershell
         run: |
           Import-Module WebAdministration
 
-          Write-Host "Stopping IIS Application Pool..."
+          Write-Host "Stopping ContactEmail.Api..."
 
           Stop-WebAppPool -Name "ContactEmail.Api"
 
-      # 4. Deploy
+          Write-Host "Application Pool stopped."
+
       - name: Deploy application
         shell: powershell
         run: |
+          $source = "C:\Deploy\ContactEmailApi-Temp"
+          $destination = "C:\Deploy\ContactEmail.API"
+
           Write-Host "Deploying ContactEmailApi..."
+          Write-Host "Source: $source"
+          Write-Host "Destination: $destination"
 
-          Get-ChildItem "C:\Deploy\ContactEmail.API"
+          if (-not (Test-Path $source)) {
+              Write-Error "Artifact folder does not exist."
+              exit 1
+          }
 
-      # 5. Start IIS Application Pool
+          if (-not (Test-Path $destination)) {
+              New-Item -ItemType Directory -Path $destination -Force
+          }
+
+          Copy-Item "$source\*" $destination -Recurse -Force
+
+          Write-Host "Deployment files copied successfully."
+
       - name: Start IIS Application Pool
         shell: powershell
         run: |
           Import-Module WebAdministration
 
-          Write-Host "Starting IIS Application Pool..."
+          Write-Host "Starting ContactEmail.Api..."
 
           Start-WebAppPool -Name "ContactEmail.Api"
 
-      # 6. Verify IIS
-      - name: Verify IIS Application Pool
+          Write-Host "Application Pool started."
+
+      - name: Verify deployment
         shell: powershell
         run: |
           Import-Module WebAdministration
 
-          Write-Host "Checking IIS Application Pool..."
+          Write-Host "Checking IIS..."
+
+          Get-WebSite -Name "ContactEmail.Api" |
+            Select-Object Name, State, PhysicalPath
 
           Get-WebAppPoolState -Name "ContactEmail.Api"
+
+          Write-Host "Checking deployed files..."
+
+          Get-ChildItem "C:\Deploy\ContactEmail.API"
+
+      - name: Cleanup temporary artifact
+        if: always()
+        shell: powershell
+        run: |
+          if (Test-Path "C:\Deploy\ContactEmailApi-Temp") {
+              Remove-Item "C:\Deploy\ContactEmailApi-Temp" -Recurse -Force
+              Write-Host "Temporary deployment folder removed."
+          }
