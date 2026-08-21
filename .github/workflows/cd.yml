@@ -5,58 +5,53 @@ on:
     workflows: ["ContactEmailApi CI"]
     types:
       - completed
-  # optional: enable manual runs for testing
-  # workflow_dispatch:
 
 jobs:
   deploy:
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: [self-hosted, Windows, X64]
 
-    # Launch Windows PowerShell with ExecutionPolicy Bypass so the runner's temporary
-    # step scripts are not blocked by execution policy. Note the required {0} placeholder.
-    defaults:
-      run:
-        shell: powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command {0}
-
     steps:
+      - name: Set PowerShell Execution Policy
+        shell: powershell
+        run: |
+          Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope Process -Force
+
       - name: Download artifact
         uses: actions/download-artifact@v4
         with:
           name: ContactEmailApi
           path: C:\Deploy\ContactEmail.API
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          repository: ${{ github.repository }}
           run-id: ${{ github.event.workflow_run.id }}
 
-      - name: Unblock downloaded files (if any)
-        run: |
-          if (Test-Path 'C:\Deploy\ContactEmail.API') {
-            Write-Host "Unblocking files under C:\Deploy\ContactEmail.API ..."
-            Get-ChildItem 'C:\Deploy\ContactEmail.API' -Recurse -Force | Unblock-File -ErrorAction SilentlyContinue
-            Write-Host "Unblock completed."
-          } else {
-            Write-Host "Deployment directory not found; skipping Unblock-File."
-          }
-
       - name: Stop IIS Application Pool
+        shell: powershell
         run: |
           Import-Module WebAdministration
           Stop-WebAppPool -Name "ContactEmail.Api"
 
       - name: Verify deployed files
+        shell: powershell
         run: |
           Write-Host "Checking deployment directory..."
-          if (-not (Test-Path 'C:\Deploy\ContactEmail.API')) {
-            Write-Error "Deployment directory does not exist."
-            exit 1
+
+          if (-not (Test-Path "C:\Deploy\ContactEmail.API")) {
+              Write-Error "Deployment directory does not exist."
+              exit 1
           }
-          Get-ChildItem 'C:\Deploy\ContactEmail.API'
+
+          Get-ChildItem "C:\Deploy\ContactEmail.API"
 
       - name: Start IIS Application Pool
+        shell: powershell
         run: |
           Import-Module WebAdministration
           Start-WebAppPool -Name "ContactEmail.Api"
 
       - name: Verify IIS Application Pool
+        shell: powershell
         run: |
           Write-Host "Checking IIS application pool..."
           Get-WebAppPoolState -Name "ContactEmail.Api"
