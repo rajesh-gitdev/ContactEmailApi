@@ -5,16 +5,19 @@ on:
     workflows: ["ContactEmailApi CI"]
     types:
       - completed
+  # optional: enable manual runs for testing
+  # workflow_dispatch:
 
 jobs:
   deploy:
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: [self-hosted, Windows, X64]
 
-    # Ensure the runner launches Windows PowerShell with ExecutionPolicy Bypass
+    # Launch Windows PowerShell with ExecutionPolicy Bypass so the runner's temporary
+    # step scripts are not blocked by execution policy. Note the required {0} placeholder.
     defaults:
       run:
-        shell: powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command
+        shell: powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command {0}
 
     steps:
       - name: Download artifact
@@ -22,7 +25,6 @@ jobs:
         with:
           name: ContactEmailApi
           path: C:\Deploy\ContactEmail.API
-          github-token: ${{ secrets.GITHUB_TOKEN }}
           run-id: ${{ github.event.workflow_run.id }}
 
       - name: Unblock downloaded files (if any)
@@ -43,13 +45,11 @@ jobs:
       - name: Verify deployed files
         run: |
           Write-Host "Checking deployment directory..."
-
-          if (-not (Test-Path "C:\Deploy\ContactEmail.API")) {
-              Write-Error "Deployment directory does not exist."
-              exit 1
+          if (-not (Test-Path 'C:\Deploy\ContactEmail.API')) {
+            Write-Error "Deployment directory does not exist."
+            exit 1
           }
-
-          Get-ChildItem "C:\Deploy\ContactEmail.API"
+          Get-ChildItem 'C:\Deploy\ContactEmail.API'
 
       - name: Start IIS Application Pool
         run: |
