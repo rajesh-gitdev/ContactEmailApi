@@ -6,10 +6,6 @@ on:
     types:
       - completed
 
-permissions:
-  actions: read
-  contents: read
-
 jobs:
   deploy:
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
@@ -18,22 +14,31 @@ jobs:
 
     steps:
 
-      # ==========================================
-      # 1. Test PowerShell Core
-      # ==========================================
-      - name: Test PowerShell
-        shell: pwsh
+      # 1. Download artifact produced by CI
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ContactEmailApi
+          path: C:\Deploy\ContactEmail.API
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      # 2. Verify artifact
+      - name: Verify artifact
+        shell: powershell
         run: |
-          Write-Host "PowerShell Core is working."
-          Write-Host "PowerShell version:"
-          $PSVersionTable.PSVersion
+          Write-Host "Checking deployment folder..."
 
+          if (-not (Test-Path "C:\Deploy\ContactEmail.API")) {
+              Write-Error "Deployment folder does not exist."
+              exit 1
+          }
 
-      # ==========================================
-      # 2. Stop IIS Application Pool
-      # ==========================================
+          Get-ChildItem "C:\Deploy\ContactEmail.API"
+
+      # 3. Stop IIS Application Pool
       - name: Stop IIS Application Pool
-        shell: pwsh
+        shell: powershell
         run: |
           Import-Module WebAdministration
 
@@ -41,238 +46,30 @@ jobs:
 
           Stop-WebAppPool -Name "ContactEmail.Api"
 
-          Write-Host "Application Pool stopped."
-
-
-      # ==========================================
-      # 3. Download Artifact from CI
-      # ==========================================
-      - name: Download artifact from CI
-        shell: pwsh
-        env:
-          GH_TOKEN: ${{ github.token }}
-          CI_RUN_ID: ${{ github.event.workflow_run.id }}
-
+      # 4. Deploy
+      - name: Deploy application
+        shell: powershell
         run: |
+          Write-Host "Deploying ContactEmailApi..."
 
-          $headers = @{
-            Authorization = "Bearer $env:GH_TOKEN"
-            Accept = "application/vnd.github+json"
-            "X-GitHub-Api-Version" = "2022-11-28"
-          }
+          Get-ChildItem "C:\Deploy\ContactEmail.API"
 
-          $repo = "${{ github.repository }}"
-
-          Write-Host "======================================"
-          Write-Host "Repository: $repo"
-          Write-Host "CI Run ID: $env:CI_RUN_ID"
-          Write-Host "======================================"
-
-          $url = "https://api.github.com/repos/$repo/actions/runs/$env:CI_RUN_ID/artifacts"
-
-          Write-Host "Getting artifacts from CI..."
-
-          $response = Invoke-RestMethod `
-            -Uri $url `
-            -Headers $headers `
-            -Method Get
-
-          $artifact = $response.artifacts |
-            Where-Object {
-              $_.name -eq "ContactEmailApi" -and
-              $_.expired -eq $false
-            } |
-            Select-Object -First 1
-
-          if (-not $artifact) {
-            Write-Error "ContactEmailApi artifact was not found."
-            exit 1
-          }
-
-          Write-Host "Artifact found!"
-          Write-Host "Artifact Name: $($artifact.name)"
-          Write-Host "Artifact ID: $($artifact.id)"
-
-          $deployPath = "C:\Deploy\ContactEmail.API"
-
-          # Create deployment folder if it doesn't exist
-          if (-not (Test-Path $deployPath)) {
-
-            Write-Host "Creating deployment directory..."
-
-            New-Item `
-              -ItemType Directory `
-              -Path $deployPath `
-              -Force | Out-Null
-          }
-
-          # Temporary ZIP file
-          $zipPath = "C:\Deploy\ContactEmailApi-artifact.zip"
-
-          Write-Host "Downloading artifact..."
-
-          Invoke-WebRequest `
-            -Uri $artifact.archive_download_url `
-            -Headers $headers `
-            -OutFile $zipPath
-
-          Write-Host "Artifact downloaded."
-
-
-          # ==========================================
-          # Clean old application files
-          # ==========================================
-
-          Write-Host "Cleaning old deployment files..."
-
-          Get-ChildItem `
-            -Path $deployPath `
-            -Force |
-            Remove-Item `
-              -Recurse `
-              -Force `
-              -ErrorAction SilentlyContinue
-
-          Write-Host "Old files removed."
-
-
-          # ==========================================
-          # Extract new application
-          # ==========================================
-
-          Write-Host "Extracting new artifact..."
-
-          Expand-Archive `
-            -Path $zipPath `
-            -DestinationPath $deployPath `
-            -Force
-
-          Write-Host "Artifact extracted successfully."
-
-
-          # Remove ZIP
-          Remove-Item `
-            $zipPath `
-            -Force `
-            -ErrorAction SilentlyContinue
-
-
-          Write-Host "======================================"
-          Write-Host "Deployment files:"
-          Write-Host "======================================"
-
-          Get-ChildItem `
-            -Path $deployPath `
-            -Force
-
-
-      # ==========================================
-      # 4. Unblock Deployment Files
-      # ==========================================
-      - name: Unblock deployment files
-        shell: pwsh
-        run: |
-
-          $path = "C:\Deploy\ContactEmail.API"
-
-          Write-Host "Checking deployment directory..."
-
-          if (-not (Test-Path $path)) {
-
-            Write-Error "Deployment directory does not exist."
-
-            exit 1
-          }
-
-          Write-Host "Unblocking files..."
-
-          Get-ChildItem `
-            -Path $path `
-            -Recurse `
-            -Force |
-            Unblock-File `
-            -ErrorAction SilentlyContinue
-
-          Write-Host "Files unblocked successfully."
-
-
-      # ==========================================
-      # 5. Verify Deployment Files
-      # ==========================================
-      - name: Verify deployment files
-        shell: pwsh
-        run: |
-
-          $path = "C:\Deploy\ContactEmail.API"
-
-          Write-Host "======================================"
-          Write-Host "Verifying deployment"
-          Write-Host "======================================"
-
-          if (-not (Test-Path $path)) {
-
-            Write-Error "Deployment directory does not exist."
-
-            exit 1
-          }
-
-          $files = Get-ChildItem `
-            -Path $path `
-            -Recurse `
-            -File
-
-          Write-Host "Total files deployed: $($files.Count)"
-
-          if ($files.Count -eq 0) {
-
-            Write-Error "No application files were deployed."
-
-            exit 1
-          }
-
-          Write-Host "Deployment files verified."
-
-
-      # ==========================================
-      # 6. Start IIS Application Pool
-      # ==========================================
+      # 5. Start IIS Application Pool
       - name: Start IIS Application Pool
-        shell: pwsh
+        shell: powershell
         run: |
-
           Import-Module WebAdministration
 
           Write-Host "Starting IIS Application Pool..."
 
-          Start-WebAppPool `
-            -Name "ContactEmail.Api"
+          Start-WebAppPool -Name "ContactEmail.Api"
 
-          Write-Host "Application Pool started."
-
-
-      # ==========================================
-      # 7. Verify IIS Application Pool
-      # ==========================================
+      # 6. Verify IIS
       - name: Verify IIS Application Pool
-        shell: pwsh
+        shell: powershell
         run: |
-
           Import-Module WebAdministration
 
           Write-Host "Checking IIS Application Pool..."
 
-          $state = Get-WebAppPoolState `
-            -Name "ContactEmail.Api"
-
-          Write-Host "IIS Application Pool State: $($state.Value)"
-
-          if ($state.Value -ne "Started") {
-
-            Write-Error "ContactEmail.Api Application Pool is not running."
-
-            exit 1
-          }
-
-          Write-Host "======================================"
-          Write-Host "IIS deployment successful!"
-          Write-Host "======================================"
+          Get-WebAppPoolState -Name "ContactEmail.Api"
