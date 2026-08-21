@@ -12,6 +12,11 @@ jobs:
     runs-on: [self-hosted, Windows, X64]
 
     steps:
+      - name: Set PowerShell Execution Policy
+        shell: powershell
+        run: |
+          Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope Process -Force
+
       - name: Download artifact
         uses: actions/download-artifact@v4
         with:
