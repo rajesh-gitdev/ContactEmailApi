@@ -12,10 +12,16 @@ jobs:
     runs-on: [self-hosted, Windows, X64]
 
     steps:
-      - name: Set PowerShell Execution Policy
+      - name: Ensure PowerShell can run scripts (no-fail)
         shell: powershell
         run: |
-          Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope Process -Force
+          try {
+            Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope Process -Force
+            Write-Host "Execution policy set to RemoteSigned for this process."
+          } catch {
+            Write-Warning "Unable to change PowerShell execution policy: $($_.Exception.Message)"
+            Write-Warning "Continuing without changing execution policy. If scripts fail later, consider unblocking files or adjusting runner policy."
+          }
 
       - name: Download artifact
         uses: actions/download-artifact@v4
@@ -24,6 +30,17 @@ jobs:
           path: C:\Deploy\ContactEmail.API
           github-token: ${{ secrets.GITHUB_TOKEN }}
           run-id: ${{ github.event.workflow_run.id }}
+
+      - name: Unblock downloaded files (if any)
+        shell: powershell
+        run: |
+          if (Test-Path 'C:\Deploy\ContactEmail.API') {
+            Write-Host "Unblocking files under C:\Deploy\ContactEmail.API ..."
+            Get-ChildItem 'C:\Deploy\ContactEmail.API' -Recurse -Force | Unblock-File -ErrorAction SilentlyContinue
+            Write-Host "Unblock completed."
+          } else {
+            Write-Host "Deployment directory not found; skipping Unblock-File."
+          }
 
       - name: Stop IIS Application Pool
         shell: powershell
